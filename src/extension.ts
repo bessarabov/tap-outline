@@ -3,8 +3,8 @@ import Parser from 'tap-parser';
 
 export function activate(ctx: vscode.ExtensionContext) {
   const selector: vscode.DocumentSelector = [
-    { language: 'tap', scheme: 'file' }, // preferred – fires on any file VS Code already classifies as TAP
-    { scheme: 'file', pattern: '**/*.{tap,t}' }, // fallback for raw pattern match
+    { language: 'tap', scheme: 'file' }, // when VS Code already tags the doc as TAP
+    { scheme: 'file', pattern: '**/*.{tap,t}' }, // fallback by extension
   ];
 
   ctx.subscriptions.push(
@@ -21,28 +21,15 @@ class TapOutlineProvider implements vscode.DocumentSymbolProvider {
     const diags: vscode.Diagnostic[] = [];
     const parser = new Parser();
 
-    // --- debug helpers ----------------------------------
-    console.log('[tap-outline] parsing', doc.uri.fsPath);
-    parser.on('assert', (t: any) => console.log('[assert]', t.name, t.ok));
-    parser.on('complete', () => console.log('[complete]'));
-    parser.on('line', (l: any) => {
-      /* tap-parser v10 emits 'line' */
-    });
-    // -----------------------------------------------------
-
+    // top‑level assertions
     parser.on('assert', (t: any) => {
-      // fall back to first column if tap-parser doesn't give line numbers
-      const line = typeof t.line === 'number' && t.line > 0 ? t.line - 1 : 0;
-      const range = doc.lineAt(Math.min(line, doc.lineCount - 1)).range;
+      const lineIdx = typeof t.line === 'number' && t.line > 0 ? t.line - 1 : 0;
+      const range = doc.lineAt(Math.min(lineIdx, doc.lineCount - 1)).range;
+
+      const kind = t.ok ? vscode.SymbolKind.File : vscode.SymbolKind.Event;
 
       symbols.push(
-        new vscode.DocumentSymbol(
-          `${t.ok ? '✓' : '✗'} ${t.name}`,
-          '',
-          vscode.SymbolKind.Method,
-          range,
-          range
-        )
+        new vscode.DocumentSymbol(`${t.ok ? '✓' : '✗'} ${t.name}`, '', kind, range, range)
       );
 
       if (!t.ok) {
@@ -52,9 +39,11 @@ class TapOutlineProvider implements vscode.DocumentSymbolProvider {
       }
     });
 
+    // sub‑tests
     parser.on('child', (sub: any) => {
       const parentLine = Math.max(0, (sub.line || 1) - 1);
       const headerRange = doc.lineAt(Math.min(parentLine, doc.lineCount - 1)).range;
+
       const parent = new vscode.DocumentSymbol(
         `⤷ ${sub.name}`,
         '',
@@ -65,16 +54,21 @@ class TapOutlineProvider implements vscode.DocumentSymbolProvider {
       symbols.push(parent);
 
       sub.on('assert', (t: any) => {
-        const childRange = doc.lineAt(Math.min((t.line || 1) - 1, doc.lineCount - 1)).range;
+        const childIdx = Math.min((t.line || 1) - 1, doc.lineCount - 1);
+        const childRange = doc.lineAt(childIdx).range;
+
+        const kind = t.ok ? vscode.SymbolKind.File : vscode.SymbolKind.Event;
+
         parent.children.push(
           new vscode.DocumentSymbol(
-            `${t.ok ? '✓' : '✗'} ${t.name}`,
+            `${t.ok ? '✓' : '✗'} ${t.name}`,
             '',
-            vscode.SymbolKind.Method,
+            kind,
             childRange,
             childRange
           )
         );
+
         if (!t.ok) {
           diags.push(new vscode.Diagnostic(childRange, t.name, vscode.DiagnosticSeverity.Error));
         }
@@ -87,7 +81,7 @@ class TapOutlineProvider implements vscode.DocumentSymbolProvider {
         resolve(symbols);
       });
 
-      // feed data
+      // feed file contents to tap‑parser
       for (const line of doc.getText().split(/\r?\n/)) {
         parser.write(line + '\n');
       }
