@@ -27,17 +27,21 @@
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
     "vscode:prepublish": "npm run compile",
-     "format": "prettier \"src/**/*.{ts,tsx}\" --write"
+    "format": "prettier \"src/**/*.{ts,tsx}\" --write",
+    "test": "jest"
   },
   "dependencies": {
     "tap-parser": "^10.1.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.90.0",
     "@vscode/vsce": "^3.6.0",
+    "jest": "^29.7.0",
     "prettier": "^3.6.2",
-    "typescript": "^5.5.0"
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.8.3"
   },
   "main": "./out/extension.js"
 }

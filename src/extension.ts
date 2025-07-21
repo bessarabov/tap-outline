@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import Parser from 'tap-parser';
+import { parseTap, OutlineNode } from './tapParser';
 
 export function activate(ctx: vscode.ExtensionContext) {
   const selector: vscode.DocumentSelector = [
@@ -15,74 +15,42 @@ export function activate(ctx: vscode.ExtensionContext) {
 /* ───────────────────────────────────────────────────────────── */
 
 class TapOutlineProvider implements vscode.DocumentSymbolProvider {
-  async provideDocumentSymbols(
+  private static diagCollection = vscode.languages.createDiagnosticCollection('tap');
+
+  provideDocumentSymbols(
     doc: vscode.TextDocument,
     _token: vscode.CancellationToken
-  ): Promise<vscode.DocumentSymbol[]> {
-    const roots: vscode.DocumentSymbol[] = [];
-    const diags: vscode.Diagnostic[] = [];
-    const parser = new Parser();
+  ): vscode.DocumentSymbol[] {
+    /* ← synchronous call – no await needed */
+    const { roots, diagnostics } = parseTap(doc.getText());
 
-    /** holds the line index of *the line we just wrote* to tap‑parser */
-    let currentLine = 0;
+    /* map pure nodes → VS Code symbols */
+    const symbols = roots.map((n) => toSymbol(n, doc));
 
-    /* 1️⃣ top‑level asserts */
-    parser.on('assert', (t: any) => {
-      roots.push(createAssertSymbol(t, currentLine));
-    });
+    /* diagnostics */
+    const vsDiags = diagnostics.map(
+      (d) =>
+        new vscode.Diagnostic(doc.lineAt(d.line).range, d.message, vscode.DiagnosticSeverity.Error)
+    );
+    TapOutlineProvider.diagCollection.set(doc.uri, vsDiags);
 
-    /* 2️⃣ sub‑tests & their asserts */
-    parser.on('child', (sub: any) => {
-      const parent = createNamespaceSymbol(sub, currentLine);
-      roots.push(parent);
-
-      sub.on('assert', (t: any) => {
-        parent.children.push(createAssertSymbol(t, currentLine));
-      });
-    });
-
-    /* 3️⃣ finish + diagnostics */
-    return new Promise((resolve) => {
-      parser.on('complete', () => {
-        TapOutlineProvider.diagCollection.set(doc.uri, diags);
-        resolve(roots); // symbols already ordered by appearance
-      });
-
-      /* feed the file line‑by‑line, tracking the line number */
-      const lines = doc.getText().split(/\r?\n/);
-      for (let i = 0; i < lines.length; i++) {
-        currentLine = i;
-        parser.write(lines[i] + '\n');
-      }
-      parser.end();
-    });
-
-    /* helper: make a pass/fail symbol */
-    function createAssertSymbol(t: any, lineIdx: number): vscode.DocumentSymbol {
-      const range = doc.lineAt(Math.min(lineIdx, doc.lineCount - 1)).range;
-      const kind = t.ok ? vscode.SymbolKind.File : vscode.SymbolKind.Event;
-
-      if (!t.ok) {
-        diags.push(
-          new vscode.Diagnostic(range, t.diag?.message || t.name, vscode.DiagnosticSeverity.Error)
-        );
-      }
-
-      return new vscode.DocumentSymbol(`${t.ok ? '✓' : '✗'} ${t.name}`, '', kind, range, range);
-    }
-
-    /* helper: make the sub‑test header symbol */
-    function createNamespaceSymbol(sub: any, lineIdx: number): vscode.DocumentSymbol {
-      const range = doc.lineAt(Math.min(lineIdx, doc.lineCount - 1)).range;
-      return new vscode.DocumentSymbol(
-        `⤷ ${sub.name}`,
-        '',
-        vscode.SymbolKind.Namespace,
-        range,
-        range
-      );
-    }
+    return symbols;
   }
+}
 
-  private static diagCollection = vscode.languages.createDiagnosticCollection('tap');
+/* ───────────────────────────────────────────────────────────── */
+
+function toSymbol(node: OutlineNode, doc: vscode.TextDocument): vscode.DocumentSymbol {
+  const range = doc.lineAt(Math.min(node.line, doc.lineCount - 1)).range;
+
+  const kind =
+    node.ok === null
+      ? vscode.SymbolKind.Namespace
+      : node.ok
+        ? vscode.SymbolKind.File
+        : vscode.SymbolKind.Event;
+
+  const sym = new vscode.DocumentSymbol(node.label, '', kind, range, range);
+  sym.children = node.children.map((c) => toSymbol(c, doc));
+  return sym;
 }
