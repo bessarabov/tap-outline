@@ -1,4 +1,0 @@
-[
-  { "label": "✓ passes", "line": 0, "ok": true,  "children": [] },
-  { "label": "✗ fails",  "line": 1, "ok": false, "children": [] }
-]

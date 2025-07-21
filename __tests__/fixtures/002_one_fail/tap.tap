@@ -1,0 +1,7 @@
+ok 1 - Test 1
+not ok 2 - Test 2
+
+#   Failed test 'Test 2'
+#   at t/002_one_fail.t line 4.
+ok 3 - Test 3
+1..3
