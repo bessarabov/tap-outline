@@ -1,69 +1,83 @@
-import Parser from 'tap-parser';
+/*  src/tapParser.ts
+    A tiny, dependency‑free TAP parser that builds
+    an outline tree and collects failing‑test diagnostics.
+*/
 
 export interface OutlineNode {
-  label: string;
-  line: number; // 0‑based
-  ok: boolean | null;
+  label: string; // human‑readable label
+  line: number; // 0‑based line number
+  ok: boolean | null; // true = pass, false = fail, null = grouping node
   children: OutlineNode[];
 }
 
 export interface DiagnosticInfo {
-  line: number;
+  line: number; // 0‑based line number
   message: string;
 }
 
 /**
- * Synchronous TAP → outline + diagnostics
+ * Parse TAP text into an outline tree and diagnostics list.
+ * – Indentation (groups of 4 spaces or tabs) determines nesting.
+ * – Lines starting with “ok” / “not ok” become assert nodes.
+ * – Lines starting with “# Subtest:” become namespace nodes.
  */
 export function parseTap(tapText: string): { roots: OutlineNode[]; diagnostics: DiagnosticInfo[] } {
   const roots: OutlineNode[] = [];
   const diagnostics: DiagnosticInfo[] = [];
-  const parser = new Parser();
+  const stack: OutlineNode[] = []; // keeps the current ancestry
 
-  /* ───────────────────────────────────────────────
-     track the *last* line we fully pushed to the parser
-     (starts at −1 so the very first assert becomes 0)
-  ─────────────────────────────────────────────── */
-  let currentLine = -1;
-
-  /* 1️⃣ top‑level asserts */
-  parser.on('assert', (t: any) => {
-    roots.push(createAssertNode(t, currentLine));
-  });
-
-  /* 2️⃣ sub‑tests & their nested asserts */
-  parser.on('child', (sub: any) => {
-    const parent = createNamespaceNode(sub, currentLine);
-    roots.push(parent);
-
-    sub.on('assert', (t: any) => {
-      parent.children.push(createAssertNode(t, currentLine));
-    });
-  });
-
-  /* 3️⃣ stream every line, THEN bump the index */
   const lines = tapText.split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    parser.write(lines[i] + '\n'); // events may fire *here*
-    currentLine = i; // …so they see the correct line
-  }
-  parser.end();
+
+  lines.forEach((raw, idx) => {
+    // Tabs → four spaces (TAP spec allows either for indenting subtests)
+    const line = raw.replace(/\t/g, '    ');
+    const trimmed = line.trimStart();
+    const indent = line.length - trimmed.length;
+    const depth = Math.floor(indent / 4); // 0,1,2,…
+
+    // Walk the stack back up to our current depth
+    while (stack.length > depth) stack.pop();
+
+    /* 1️⃣  "ok" / "not ok" assertions ─────────────────────────── */
+    if (/^(ok|not ok)\b/i.test(trimmed)) {
+      const ok = trimmed.toLowerCase().startsWith('ok');
+      const labelText = trimmed.replace(/^(ok|not ok)\b\s*\d*\s*-?\s*/i, ''); // strip leading tokens & optional index/“-”
+      const node: OutlineNode = {
+        label: `${ok ? '✓' : '✗'}${labelText ? ' ' + labelText : ''}`,
+        line: idx,
+        ok,
+        children: [],
+      };
+      if (!ok) diagnostics.push({ line: idx, message: labelText || trimmed });
+
+      appendNode(node);
+      return; // done for this line
+    }
+
+    /* 2️⃣  "# Subtest:" namespaces ────────────────────────────── */
+    const subMatch = /^#\s*subtest:\s*(.+)/i.exec(trimmed);
+    if (subMatch) {
+      const node: OutlineNode = {
+        label: `⤷ ${subMatch[1].trim()}`,
+        line: idx,
+        ok: null,
+        children: [],
+      };
+      appendNode(node);
+      stack.push(node); // descend into this subtest
+    }
+
+    // All other lines are ignored.
+  });
 
   return { roots, diagnostics };
 
-  /* helpers ─────────────────────────────────────── */
-
-  function createAssertNode(t: any, line: number): OutlineNode {
-    if (!t.ok) diagnostics.push({ line, message: t.diag?.message || t.name });
-    return {
-      label: `${t.ok ? '✓' : '✗'}${t.name ? ' ' + t.name : ''}`,
-      line,
-      ok: t.ok,
-      children: [],
-    };
-  }
-
-  function createNamespaceNode(sub: any, line: number): OutlineNode {
-    return { label: `⤷ ${sub.name}`, line, ok: null, children: [] };
+  /* helper – attach node to the correct parent (or roots) */
+  function appendNode(node: OutlineNode) {
+    if (stack.length) {
+      stack[stack.length - 1].children.push(node);
+    } else {
+      roots.push(node);
+    }
   }
 }

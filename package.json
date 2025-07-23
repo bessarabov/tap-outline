@@ -30,9 +30,6 @@
     "format": "prettier \"src/**/*.{ts,tsx}\" --write",
     "test": "jest"
   },
-  "dependencies": {
-    "tap-parser": "^10.1.0"
-  },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
