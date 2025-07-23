@@ -55,7 +55,12 @@ export function parseTap(tapText: string): { roots: OutlineNode[]; diagnostics: 
 
   function createAssertNode(t: any, line: number): OutlineNode {
     if (!t.ok) diagnostics.push({ line, message: t.diag?.message || t.name });
-    return { label: `${t.ok ? '✓' : '✗'} ${t.name}`, line, ok: t.ok, children: [] };
+    return {
+      label: `${t.ok ? '✓' : '✗'}${t.name ? ' ' + t.name : ''}`,
+      line,
+      ok: t.ok,
+      children: [],
+    };
   }
 
   function createNamespaceNode(sub: any, line: number): OutlineNode {
