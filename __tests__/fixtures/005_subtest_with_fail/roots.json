@@ -1,0 +1,39 @@
+[
+    {
+        "children": [],
+        "label": "✓ Top level first test",
+        "line": 1,
+        "ok": true
+    },
+    {
+        "children": [
+            {
+                "children": [],
+                "label": "✓ Test 1 in subtest",
+                "line": 3,
+                "ok": true
+            },
+            {
+                "children": [],
+                "label": "✗ Test 2 in Subtest",
+                "line": 4,
+                "ok": false
+            }
+        ],
+        "label": "⤷ Subtest",
+        "line": 2,
+        "ok": null
+    },
+    {
+        "children": [],
+        "label": "✗ Subtest",
+        "line": 10,
+        "ok": false
+    },
+    {
+        "children": [],
+        "label": "✓ Top level last test",
+        "line": 14,
+        "ok": true
+    }
+]

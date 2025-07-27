@@ -1,0 +1,10 @@
+[
+  {
+    "line": 4,
+    "message": "Test 2 in Subtest"
+  },
+  {
+    "line": 10,
+    "message": "Subtest"
+  }
+]
