@@ -27,7 +27,7 @@
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
     "vscode:prepublish": "npm run compile",
-    "format": "prettier \"src/**/*.{ts,tsx}\" --write",
+    "format": "prettier \"src/**/*.{ts,tsx}\" \"__tests__/**/*.json\" --write",
     "test": "jest"
   },
   "devDependencies": {

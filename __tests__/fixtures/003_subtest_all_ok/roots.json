@@ -1,33 +1,33 @@
 [
-    {
+  {
+    "children": [],
+    "label": "✓ Top level first test",
+    "line": 1,
+    "ok": true
+  },
+  {
+    "children": [
+      {
         "children": [],
-        "label": "✓ Top level first test",
-        "line": 1,
+        "label": "✓ Test 1 in subtest",
+        "line": 3,
         "ok": true
-    },
-    {
-        "children": [
-            {
-                "children": [],
-                "label": "✓ Test 1 in subtest",
-                "line": 3,
-                "ok": true
-            },
-            {
-                "children": [],
-                "label": "✓ Test 2 in Subtest",
-                "line": 4,
-                "ok": true
-            }
-        ],
-        "label": "✓ Subtest",
-        "line": 6,
-        "ok": true
-    },
-    {
+      },
+      {
         "children": [],
-        "label": "✓ Top level last test",
-        "line": 7,
+        "label": "✓ Test 2 in Subtest",
+        "line": 4,
         "ok": true
-    }
+      }
+    ],
+    "label": "✓ Subtest",
+    "line": 6,
+    "ok": true
+  },
+  {
+    "children": [],
+    "label": "✓ Top level last test",
+    "line": 7,
+    "ok": true
+  }
 ]
