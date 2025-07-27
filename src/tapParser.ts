@@ -15,64 +15,81 @@ export interface DiagnosticInfo {
   message: string;
 }
 
-/**
- * Parse TAP text into an outline tree and diagnostics list.
- * – Indentation (groups of 4 spaces or tabs) determines nesting.
- * – Lines starting with “ok” / “not ok” become assert nodes.
- * – Lines starting with “# Subtest:” become namespace nodes.
- */
 export function parseTap(tapText: string): { roots: OutlineNode[]; diagnostics: DiagnosticInfo[] } {
   const roots: OutlineNode[] = [];
   const diagnostics: DiagnosticInfo[] = [];
-  const stack: OutlineNode[] = []; // keeps the current ancestry
+
+  // Open groups stack (represents anonymous subtest containers by indent)
+  const stack: OutlineNode[] = [];
+  // Recently-closed groups waiting for their summary line at a shallower depth
+  const awaiting: Record<number, OutlineNode[]> = Object.create(null);
 
   const lines = tapText.split(/\r?\n/);
 
-  lines.forEach((raw, idx) => {
-    // Tabs → four spaces (TAP spec allows either for indenting subtests)
+  for (let idx = 0; idx < lines.length; idx++) {
+    const raw = lines[idx];
+
+    // Tabs → four spaces for indent math
     const line = raw.replace(/\t/g, '    ');
     const trimmed = line.trimStart();
+
+    // Ignore depth changes for **blank lines** entirely
+    if (trimmed.length === 0) continue;
+
     const indent = line.length - trimmed.length;
-    const depth = Math.floor(indent / 4); // 0,1,2,…
+    const depth = Math.floor(indent / 4);
 
-    // Walk the stack back up to our current depth
-    while (stack.length > depth) stack.pop();
+    const isAssertion = /^(ok|not ok)\b/i.test(trimmed);
 
-    /* 1️⃣  "ok" / "not ok" assertions ─────────────────────────── */
-    if (/^(ok|not ok)\b/i.test(trimmed)) {
-      const ok = trimmed.toLowerCase().startsWith('ok');
-      const labelText = trimmed.replace(/^(ok|not ok)\b\s*\d*\s*-?\s*/i, ''); // strip leading tokens & optional index/“-”
+    if (isAssertion) {
+      // Close groups to this depth; closed ones await a summary at this depth
+      while (stack.length > depth) {
+        const closed = stack.pop()!;
+        (awaiting[depth] ||= []).push(closed);
+      }
+
+      // Open anonymous groups up to this depth **only now** (on an assertion)
+      while (stack.length < depth) {
+        const anon: OutlineNode = { label: '', line: idx, ok: null, children: [] };
+        appendNode(anon);
+        stack.push(anon);
+      }
+
+      const isOk = trimmed.toLowerCase().startsWith('ok');
+      const labelText = trimmed.replace(/^(ok|not ok)\b\s*\d*\s*-?\s*/i, '').trim();
+
+      // If a group just closed at this depth, this assertion is its summary
+      const waiting = awaiting[depth];
+      if (waiting && waiting.length) {
+        const group = waiting.pop()!;
+        group.ok = isOk;
+        group.label = `${isOk ? '✓' : '✗'}${labelText ? ' ' + labelText : ''}`;
+        group.line = idx;
+        if (!isOk) diagnostics.push({ line: idx, message: labelText || trimmed });
+        continue;
+      }
+
+      // Otherwise it's a normal assertion
       const node: OutlineNode = {
-        label: `${ok ? '✓' : '✗'}${labelText ? ' ' + labelText : ''}`,
+        label: `${isOk ? '✓' : '✗'}${labelText ? ' ' + labelText : ''}`,
         line: idx,
-        ok,
+        ok: isOk,
         children: [],
       };
-      if (!ok) diagnostics.push({ line: idx, message: labelText || trimmed });
-
+      if (!isOk) diagnostics.push({ line: idx, message: labelText || trimmed });
       appendNode(node);
-      return; // done for this line
+      continue;
     }
 
-    /* 2️⃣  "# Subtest:" namespaces ────────────────────────────── */
-    const subMatch = /^#\s*subtest:\s*(.+)/i.exec(trimmed);
-    if (subMatch) {
-      const node: OutlineNode = {
-        label: `⤷ ${subMatch[1].trim()}`,
-        line: idx,
-        ok: null,
-        children: [],
-      };
-      appendNode(node);
-      stack.push(node); // descend into this subtest
-    }
-
-    // All other lines are ignored.
-  });
+    // Non-assertion lines:
+    // - Do NOT open groups on deeper indent (prevents stray containers)
+    // - We also avoid popping groups here; the real structural dedent
+    //   we care about will be on the summary assertion line.
+    // So we intentionally do nothing.
+  }
 
   return { roots, diagnostics };
 
-  /* helper – attach node to the correct parent (or roots) */
   function appendNode(node: OutlineNode) {
     if (stack.length) {
       stack[stack.length - 1].children.push(node);

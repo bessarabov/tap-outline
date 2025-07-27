@@ -20,12 +20,6 @@
                 "ok": false
             }
         ],
-        "label": "⤷ Subtest",
-        "line": 2,
-        "ok": null
-    },
-    {
-        "children": [],
         "label": "✗ Subtest",
         "line": 10,
         "ok": false
