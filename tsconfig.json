@@ -12,4 +12,3 @@
   },
   "exclude": ["node_modules", ".vscode-test", "__tests__"]
 }
-

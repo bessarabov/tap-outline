@@ -11,17 +11,13 @@ const FIXTURE_DIR = path.resolve(__dirname, 'fixtures');
 fs.readdirSync(FIXTURE_DIR, { withFileTypes: true })
   .filter((dirent) => dirent.isDirectory())
   .forEach((dirent) => {
-    const caseName = dirent.name;                 // e.g. "all_pass"
+    const caseName = dirent.name; // e.g. "all_pass"
     const casePath = path.join(FIXTURE_DIR, caseName);
 
-    const tapText = fs
-      .readFileSync(path.join(casePath, 'tap.tap'), 'utf8')
-      .trimEnd();                                 // normalise trailing newline
-    const expectedRoots = JSON.parse(
-      fs.readFileSync(path.join(casePath, 'roots.json'), 'utf8'),
-    );
+    const tapText = fs.readFileSync(path.join(casePath, 'tap.tap'), 'utf8').trimEnd(); // normalise trailing newline
+    const expectedRoots = JSON.parse(fs.readFileSync(path.join(casePath, 'roots.json'), 'utf8'));
     const expectedDiagnostics = JSON.parse(
-      fs.readFileSync(path.join(casePath, 'diagnostics.json'), 'utf8'),
+      fs.readFileSync(path.join(casePath, 'diagnostics.json'), 'utf8')
     );
 
     describe(`parseTap – ${caseName}`, () => {
