@@ -21,6 +21,13 @@
           ".tap"
         ]
       }
+    ],
+    "grammars": [
+      {
+        "language": "tap",
+        "scopeName": "source.tap",
+        "path": "./syntaxes/tap.tmLanguage.json"
+      }
     ]
   },
   "scripts": {

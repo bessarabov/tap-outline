@@ -1,0 +1,21 @@
+{
+  "scopeName": "source.tap",
+  "name": "TAP",
+  "patterns": [
+    {
+      "begin": "^\\s*(#)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.comment.tap" }
+      },
+      "end": "$",
+      "name": "comment.line.number-sign.tap"
+    },
+    {
+      "name": "meta.plan.line.tap",
+      "match": "^\\s*(\\d+\\.\\.\\d+)\\b",
+      "captures": {
+        "1": { "name": "constant.language.tap.plan" }
+      }
+    }
+  ]
+}
