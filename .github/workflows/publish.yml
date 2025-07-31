@@ -36,8 +36,8 @@ jobs:
           PKG_VERSION="$(node -p "require('./package.json').version")"
           echo "Tag: $TAG"
           echo "package.json version: $PKG_VERSION"
-          if [ "$TAG" != "v$PKG_VERSION" ]; then
-            echo "::error ::Tag ($TAG) must equal v<package.json version> (v$PKG_VERSION)"
+          if [ "$TAG" != "$PKG_VERSION" ]; then
+            echo "::error ::Tag ($TAG) must equal <package.json version> ($PKG_VERSION)"
             exit 1
           fi
 
