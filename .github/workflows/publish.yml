@@ -3,7 +3,7 @@ name: Publish Extension
 on:
   push:
     tags:
-      - "*"
+      - '*'
 
 jobs:
   publish:
@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tap-outline-${{ github.ref_name }}
-          path: "*.vsix"
+          path: '*.vsix'
 
       - name: Publish to VS Code Marketplace
         env:
