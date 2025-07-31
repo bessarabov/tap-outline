@@ -8,6 +8,25 @@
   "engines": {
     "vscode": "^1.90.0"
   },
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "keywords": [
+    "tap",
+    "test anything protocol",
+    "outline",
+    "testing"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bessarabov/tap-outline.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bessarabov/tap-outline/issues"
+  },
+  "homepage": "https://github.com/bessarabov/tap-outline",
   "activationEvents": [
     "onLanguage:tap"
   ],
@@ -16,6 +35,7 @@
       {
         "id": "tap",
         "aliases": [
+          "Test Anything Protocol",
           "TAP"
         ],
         "extensions": [
@@ -31,6 +51,14 @@
       }
     ]
   },
+  "files": [
+    "out",
+    "syntaxes",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "images"
+  ],
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
@@ -38,6 +66,14 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "jest"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": {
+      "supported": true
+    }
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
