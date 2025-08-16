@@ -11,6 +11,10 @@ Features:
 
 https://github.com/bessarabov/tap-outline
 
+## Marketplace
+
+https://marketplace.visualstudio.com/items?itemName=bessarabov.tap-outline
+
 ## How to publish
 
 1.  Add new version to CHANGELOG.md
